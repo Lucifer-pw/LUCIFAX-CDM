@@ -4,12 +4,51 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucifax_cdm/core/constants/app_colors.dart';
 import 'package:lucifax_cdm/core/services/auth_service.dart';
+import 'package:lucifax_cdm/core/services/device_service.dart';
+import 'package:lucifax_cdm/core/services/background_service.dart';
+import 'package:lucifax_cdm/core/platform/native_bridge.dart';
 
-class UserHomeScreen extends ConsumerWidget {
+class UserHomeScreen extends ConsumerStatefulWidget {
   const UserHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<UserHomeScreen> createState() => _UserHomeScreenState();
+}
+
+class _UserHomeScreenState extends ConsumerState<UserHomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _autoRegisterDeviceAndStartProtection();
+  }
+
+  Future<void> _autoRegisterDeviceAndStartProtection() async {
+    try {
+      final user = ref.read(authServiceProvider).currentUser;
+      if (user != null) {
+        final deviceService = ref.read(deviceServiceProvider);
+        
+        // 1. Auto register device to firestore under 'device' mode
+        final currentDevice = await deviceService.registerOrUpdateCurrentDevice(
+          userId: user.uid,
+          mode: 'device',
+        );
+
+        ref.read(activeDeviceProvider.notifier).state = currentDevice;
+
+        // 2. Auto start background protection & foreground services
+        await BackgroundServiceManager.start();
+        await NativeBridge.startForegroundService();
+        
+        debugPrint('Successfully auto-registered device and started background protection.');
+      }
+    } catch (e) {
+      debugPrint('Error auto-registering device: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
