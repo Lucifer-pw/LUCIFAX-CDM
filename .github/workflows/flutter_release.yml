@@ -2,7 +2,7 @@ name: Build & Release APK
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
     tags:
       - 'v*'
   workflow_dispatch:
@@ -71,9 +71,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Auto-create release from main/master branch push (non-tag) — draft release
-      - name: Auto-Release from Main/Master Branch
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && !startsWith(github.ref, 'refs/tags/')
+      # Auto-create release from main branch push (non-tag) — draft release
+      - name: Auto-Release from Main Branch
+        if: github.ref == 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: auto-build-${{ github.run_number }}
