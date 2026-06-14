@@ -17,6 +17,10 @@ final connectedDevicesProvider = StreamProvider.family<List<DeviceModel>, String
   return ref.watch(deviceServiceProvider).streamConnectedDevices(userId);
 });
 
+final allDevicesProvider = StreamProvider<List<DeviceModel>>((ref) {
+  return ref.watch(deviceServiceProvider).streamAllDevices();
+});
+
 final activeDeviceProvider = StateProvider<DeviceModel?>((ref) => null);
 
 class DeviceService {
@@ -98,6 +102,17 @@ class DeviceService {
     return _firestore
         .collection('devices')
         .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => DeviceModel.fromJson(doc.data()))
+          .toList();
+    });
+  }
+
+  Stream<List<DeviceModel>> streamAllDevices() {
+    return _firestore
+        .collection('devices')
         .snapshots()
         .map((snapshot) {
       return snapshot.docs

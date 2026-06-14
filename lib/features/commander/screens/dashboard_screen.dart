@@ -529,16 +529,6 @@ class _CommanderDashboardScreenState extends ConsumerState<CommanderDashboardScr
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final userModelAsync = ref.watch(userModelProvider);
-    final userModel = userModelAsync.value;
-    final isAdmin = userModel?.role == 'admin';
-
-    final Query<Map<String, dynamic>> devicesQuery = isAdmin
-        ? FirebaseFirestore.instance.collection('devices')
-        : FirebaseFirestore.instance
-            .collection('devices')
-            .where('userId', isEqualTo: user.uid);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStrings.dashboardTitle),
@@ -559,7 +549,9 @@ class _CommanderDashboardScreenState extends ConsumerState<CommanderDashboardScr
         ),
         child: SafeArea(
           child: StreamBuilder<QuerySnapshot>(
-            stream: devicesQuery.snapshots(),
+            stream: FirebaseFirestore.instance
+                .collection('devices')
+                .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
