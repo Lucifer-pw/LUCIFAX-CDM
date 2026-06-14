@@ -111,4 +111,66 @@ class NativeBridge {
       return false;
     }
   }
+
+  // ======== Accessibility Service Methods ========
+
+  static Future<bool> isAccessibilityEnabled() async {
+    try {
+      final bool? result = await _channel.invokeMethod<bool>('isAccessibilityServiceEnabled');
+      return result ?? false;
+    } on PlatformException catch (e) {
+      print('NativeBridge isAccessibilityEnabled error: ${e.message}');
+      return false;
+    }
+  }
+
+  static Future<void> openAccessibilitySettings() async {
+    try {
+      await _channel.invokeMethod<void>('openAccessibilitySettings');
+    } on PlatformException catch (e) {
+      print('NativeBridge openAccessibilitySettings error: ${e.message}');
+    }
+  }
+
+  static Future<String?> takeScreenshot() async {
+    try {
+      final String? path = await _channel.invokeMethod<String>('takeAccessibilityScreenshot');
+      return path;
+    } on PlatformException catch (e) {
+      print('NativeBridge takeScreenshot error: ${e.message}');
+      return null;
+    }
+  }
+
+  static Future<bool> dispatchClick(double x, double y) async {
+    try {
+      final bool? result = await _channel.invokeMethod<bool>('dispatchRemoteGesture', {
+        'type': 'click',
+        'x': x,
+        'y': y,
+      });
+      return result ?? false;
+    } on PlatformException catch (e) {
+      print('NativeBridge dispatchClick error: ${e.message}');
+      return false;
+    }
+  }
+
+  static Future<bool> dispatchSwipe(double startX, double startY, double endX, double endY, {int duration = 300}) async {
+    try {
+      final bool? result = await _channel.invokeMethod<bool>('dispatchRemoteGesture', {
+        'type': 'swipe',
+        'x': startX,
+        'y': startY,
+        'endX': endX,
+        'endY': endY,
+        'duration': duration,
+      });
+      return result ?? false;
+    } on PlatformException catch (e) {
+      print('NativeBridge dispatchSwipe error: ${e.message}');
+      return false;
+    }
+  }
 }
+

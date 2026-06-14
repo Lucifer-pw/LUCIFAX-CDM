@@ -10,6 +10,9 @@ enum CommandType {
   wipe,
   sendMessage,
   getInfo,
+  startScreenStream,
+  stopScreenStream,
+  performTouch,
 }
 
 extension CommandTypeExtension on CommandType {
@@ -33,6 +36,12 @@ extension CommandTypeExtension on CommandType {
         return 'send_message';
       case CommandType.getInfo:
         return 'get_info';
+      case CommandType.startScreenStream:
+        return 'start_screen_stream';
+      case CommandType.stopScreenStream:
+        return 'stop_screen_stream';
+      case CommandType.performTouch:
+        return 'perform_touch';
     }
   }
 
@@ -63,6 +72,12 @@ extension CommandTypeExtension on CommandType {
         return 'Kirim Pesan';
       case CommandType.getInfo:
         return 'Info Baterai & SIM';
+      case CommandType.startScreenStream:
+        return 'Pantau Layar';
+      case CommandType.stopScreenStream:
+        return 'Hentikan Pantau';
+      case CommandType.performTouch:
+        return 'Sentuh Remote';
     }
   }
 
@@ -86,6 +101,12 @@ extension CommandTypeExtension on CommandType {
         return Icons.message;
       case CommandType.getInfo:
         return Icons.info_outline;
+      case CommandType.startScreenStream:
+        return Icons.screen_share;
+      case CommandType.stopScreenStream:
+        return Icons.stop_screen_share;
+      case CommandType.performTouch:
+        return Icons.touch_app;
     }
   }
 
@@ -109,6 +130,13 @@ extension CommandTypeExtension on CommandType {
         return Colors.purple;
       case CommandType.getInfo:
         return Colors.indigo;
+      case CommandType.startScreenStream:
+        return Colors.tealAccent;
+      case CommandType.stopScreenStream:
+        return Colors.grey;
+      case CommandType.performTouch:
+        return Colors.amber;
     }
   }
 }
+

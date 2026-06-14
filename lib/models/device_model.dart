@@ -13,6 +13,10 @@ class DeviceModel {
   final Map<String, dynamic> simInfo;
   final String mode; // 'device' or 'commander'
   final String platform; // 'android' or 'web'
+  final bool isLocked;
+  final String customMessage;
+  final bool isScreenStreaming;
+  final int lastScreenUpdate;
 
   DeviceModel({
     required this.id,
@@ -29,6 +33,10 @@ class DeviceModel {
     required this.simInfo,
     required this.mode,
     required this.platform,
+    this.isLocked = false,
+    this.customMessage = '',
+    this.isScreenStreaming = false,
+    this.lastScreenUpdate = 0,
   });
 
   Map<String, dynamic> toJson() {
@@ -47,6 +55,10 @@ class DeviceModel {
       'simInfo': simInfo,
       'mode': mode,
       'platform': platform,
+      'isLocked': isLocked,
+      'customMessage': customMessage,
+      'isScreenStreaming': isScreenStreaming,
+      'lastScreenUpdate': lastScreenUpdate,
     };
   }
 
@@ -68,6 +80,10 @@ class DeviceModel {
       simInfo: json['simInfo'] != null ? Map<String, dynamic>.from(json['simInfo']) : {},
       mode: json['mode'] ?? 'device',
       platform: json['platform'] ?? 'android',
+      isLocked: json['isLocked'] ?? false,
+      customMessage: json['customMessage'] ?? '',
+      isScreenStreaming: json['isScreenStreaming'] ?? false,
+      lastScreenUpdate: json['lastScreenUpdate'] ?? 0,
     );
   }
 
@@ -86,6 +102,10 @@ class DeviceModel {
     Map<String, dynamic>? simInfo,
     String? mode,
     String? platform,
+    bool? isLocked,
+    String? customMessage,
+    bool? isScreenStreaming,
+    int? lastScreenUpdate,
   }) {
     return DeviceModel(
       id: id ?? this.id,
@@ -102,6 +122,10 @@ class DeviceModel {
       simInfo: simInfo ?? this.simInfo,
       mode: mode ?? this.mode,
       platform: platform ?? this.platform,
+      isLocked: isLocked ?? this.isLocked,
+      customMessage: customMessage ?? this.customMessage,
+      isScreenStreaming: isScreenStreaming ?? this.isScreenStreaming,
+      lastScreenUpdate: lastScreenUpdate ?? this.lastScreenUpdate,
     );
   }
 }

@@ -166,6 +166,60 @@ class MainActivity : FlutterActivity() {
                         result.error("INVALID_ARGUMENT", "Path is null", null)
                     }
                 }
+                "isAccessibilityServiceEnabled" -> {
+                    result.success(LucifaxAccessibilityService.isRunning())
+                }
+                "openAccessibilitySettings" -> {
+                    try {
+                        val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        startActivity(intent)
+                        result.success(null)
+                    } catch (e: Exception) {
+                        result.error("SETTINGS_ERROR", e.message, null)
+                    }
+                }
+                "takeAccessibilityScreenshot" -> {
+                    val service = LucifaxAccessibilityService.getInstance()
+                    if (service != null) {
+                        service.takeScreenshotSilently { path ->
+                            runOnUiThread {
+                                if (path != null) {
+                                    result.success(path)
+                                } else {
+                                    result.error("SCREENSHOT_FAILED", "Failed to take screenshot", null)
+                                }
+                            }
+                        }
+                    } else {
+                        result.error("SERVICE_NOT_RUNNING", "Accessibility Service is not running", null)
+                    }
+                }
+                "dispatchRemoteGesture" -> {
+                    val service = LucifaxAccessibilityService.getInstance()
+                    if (service != null) {
+                        val x = call.argument<Double>("x")?.toFloat() ?: 0f
+                        val y = call.argument<Double>("y")?.toFloat() ?: 0f
+                        val gestureType = call.argument<String>("type") ?: "click"
+                        
+                        when (gestureType) {
+                            "click" -> {
+                                val success = service.performClick(x, y)
+                                result.success(success)
+                            }
+                            "swipe" -> {
+                                val endX = call.argument<Double>("endX")?.toFloat() ?: 0f
+                                val endY = call.argument<Double>("endY")?.toFloat() ?: 0f
+                                val duration = call.argument<Int>("duration")?.toLong() ?: 300L
+                                val success = service.performSwipe(x, y, endX, endY, duration)
+                                result.success(success)
+                            }
+                            else -> result.error("UNKNOWN_GESTURE", "Unknown gesture type: $gestureType", null)
+                        }
+                    } else {
+                        result.error("SERVICE_NOT_RUNNING", "Accessibility Service is not running", null)
+                    }
+                }
                 else -> {
                     result.notImplemented()
                 }

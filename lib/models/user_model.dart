@@ -6,6 +6,7 @@ class UserModel {
   final String? pin; // hashed pin
   final List<String> devices;
   final DateTime createdAt;
+  final String role; // 'user' or 'admin'
 
   UserModel({
     required this.uid,
@@ -15,6 +16,7 @@ class UserModel {
     this.pin,
     required this.devices,
     required this.createdAt,
+    this.role = 'user',
   });
 
   Map<String, dynamic> toJson() {
@@ -26,6 +28,7 @@ class UserModel {
       'pin': pin,
       'devices': devices,
       'createdAt': createdAt.toIso8601String(),
+      'role': role,
     };
   }
 
@@ -42,6 +45,7 @@ class UserModel {
       createdAt: json['createdAt'] != null 
           ? DateTime.parse(json['createdAt']) 
           : DateTime.now(),
+      role: json['role'] ?? 'user',
     );
   }
 
@@ -53,6 +57,7 @@ class UserModel {
     String? pin,
     List<String>? devices,
     DateTime? createdAt,
+    String? role,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -62,6 +67,7 @@ class UserModel {
       pin: pin ?? this.pin,
       devices: devices ?? this.devices,
       createdAt: createdAt ?? this.createdAt,
+      role: role ?? this.role,
     );
   }
 }

@@ -14,10 +14,10 @@ final authStateProvider = StreamProvider<User?>((ref) {
   return ref.watch(authServiceProvider).authStateChanges;
 });
 
-final userModelProvider = FutureProvider<UserModel?>((ref) async {
+final userModelProvider = StreamProvider<UserModel?>((ref) {
   final user = ref.watch(authStateProvider).value;
-  if (user == null) return null;
-  return ref.watch(authServiceProvider).getUserData(user.uid);
+  if (user == null) return Stream.value(null);
+  return ref.watch(authServiceProvider).getUserStream(user.uid);
 });
 
 class AuthService {
@@ -58,6 +58,7 @@ class AuthService {
           displayName: displayName,
           devices: [],
           createdAt: DateTime.now(),
+          role: 'user',
         );
         await _firestore.collection('users').doc(uid).set(userModel.toJson());
         return userModel;
@@ -79,6 +80,15 @@ class AuthService {
       debugPrint('AuthService getUserData error: $e');
     }
     return null;
+  }
+
+  Stream<UserModel?> getUserStream(String uid) {
+    return _firestore.collection('users').doc(uid).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return UserModel.fromJson(doc.data()!);
+      }
+      return null;
+    });
   }
 
   Future<void> savePin(String pin) async {

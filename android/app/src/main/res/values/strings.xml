@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Lucifax CDM</string>
+    <string name="accessibility_service_description">Lucifax CDM menggunakan Accessibility Service untuk mengambil screenshot layar dan mensimulasikan sentuhan untuk remote control perangkat yang hilang.</string>
 </resources>

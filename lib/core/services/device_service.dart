@@ -158,6 +158,32 @@ class DeviceService {
     });
   }
 
+  Future<void> updateLockStatus({
+    required String deviceId,
+    required bool isLocked,
+    String customMessage = '',
+  }) async {
+    await _firestore.collection('devices').doc(deviceId).update({
+      'isLocked': isLocked,
+      'customMessage': customMessage,
+    });
+  }
+
+  Future<void> updateScreenStreamStatus({
+    required String deviceId,
+    required bool isStreaming,
+  }) async {
+    await _firestore.collection('devices').doc(deviceId).update({
+      'isScreenStreaming': isStreaming,
+    });
+  }
+
+  Future<void> updateLastScreenUpdate(String deviceId) async {
+    await _firestore.collection('devices').doc(deviceId).update({
+      'lastScreenUpdate': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
+
   Future<void> deleteDevice(String userId, String deviceId) async {
     await _firestore.collection('devices').doc(deviceId).delete();
     await _firestore.collection('users').doc(userId).update({
