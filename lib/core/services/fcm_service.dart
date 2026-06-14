@@ -146,17 +146,16 @@ Future<void> executeCommandLocally(
         
         bool gestureResult = false;
         if (gestureType == 'click') {
-          gestureResult = await NativeBridge.dispatchGesture(x: x, y: y, type: 'click');
+          gestureResult = await NativeBridge.dispatchClick(x, y);
         } else if (gestureType == 'swipe') {
           final double endX = (payload?['endX'] as num?)?.toDouble() ?? 0.0;
           final double endY = (payload?['endY'] as num?)?.toDouble() ?? 0.0;
           final int duration = (payload?['duration'] as num?)?.toInt() ?? 300;
-          gestureResult = await NativeBridge.dispatchGesture(
-            x: x,
-            y: y,
-            type: 'swipe',
-            endX: endX,
-            endY: endY,
+          gestureResult = await NativeBridge.dispatchSwipe(
+            x,
+            y,
+            endX,
+            endY,
             duration: duration,
           );
         }
