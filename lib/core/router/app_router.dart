@@ -67,6 +67,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // 3. Logged in, userModel is ready
+      final pin = userModel.pin;
+      final hasPin = pin != null && pin.trim().isNotEmpty;
+
+      if (!hasPin) {
+        if (state.matchedLocation != '/pin-setup') {
+          return '/pin-setup';
+        }
+        return null;
+      }
+
       final role = userModel.role;
 
       if (role == 'user') {
@@ -77,10 +87,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return null;
       } else if (role == 'admin') {
         // Admin has access to commander features, mode select, etc.
-        // If admin is on login/register/user-home/loading, redirect to mode-select
+        // If admin is on login/register/user-home/pin-setup/loading, redirect to mode-select
         final isRestrictedPath = isLoggingIn ||
             isRegistering ||
             state.matchedLocation == '/user-home' ||
+            state.matchedLocation == '/pin-setup' ||
             state.matchedLocation == '/loading';
         if (isRestrictedPath) {
           return '/mode-select';

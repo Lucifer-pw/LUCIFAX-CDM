@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:lucifax_cdm/core/constants/app_colors.dart';
 import 'package:lucifax_cdm/core/constants/app_strings.dart';
 import 'package:lucifax_cdm/core/services/auth_service.dart';
 import 'package:lucifax_cdm/core/services/device_service.dart';
+import 'package:lucifax_cdm/core/services/github_service.dart';
 
 class ModeSelectScreen extends ConsumerStatefulWidget {
   const ModeSelectScreen({super.key});
@@ -16,6 +18,23 @@ class ModeSelectScreen extends ConsumerStatefulWidget {
 
 class _ModeSelectScreenState extends ConsumerState<ModeSelectScreen> {
   bool _isLoading = false;
+  String _appVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersionAndCheckUpdates();
+  }
+
+  Future<void> _loadVersionAndCheckUpdates() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = 'v${packageInfo.version}';
+      });
+      await GithubService.checkAndShowUpdateDialog(context);
+    }
+  }
 
   void _selectMode(String mode) async {
     setState(() => _isLoading = true);
@@ -161,6 +180,17 @@ class _ModeSelectScreenState extends ConsumerState<ModeSelectScreen> {
                       color: AppColors.success,
                       onTap: () => _selectMode('commander'),
                     ).animate().fade(delay: 600.ms).slideX(begin: 0.1),
+                    
+                    const SizedBox(height: 32),
+                    Text(
+                      _appVersion,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ).animate().fade(delay: 800.ms),
                   ],
                 ),
               ),

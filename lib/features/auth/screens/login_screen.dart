@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:lucifax_cdm/core/constants/app_colors.dart';
 import 'package:lucifax_cdm/core/constants/app_strings.dart';
 import 'package:lucifax_cdm/core/services/auth_service.dart';
@@ -22,145 +23,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _nameController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
-    _checkUpdates();
+    _loadVersionAndCheckUpdates();
   }
 
-  Future<void> _checkUpdates() async {
-    final updateInfo = await GithubService.checkUpdates();
-    if (updateInfo != null && updateInfo['hasUpdate'] == true && mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.glassBorder),
-          ),
-          title: Row(
-            children: [
-              Icon(Icons.system_update, color: AppColors.primaryAccent),
-              const SizedBox(width: 8),
-              const Text(AppStrings.updateAvailableTitle),
-            ],
-          ),
-          content: Text(
-            AppStrings.updateAvailableDesc.replaceFirst('{version}', updateInfo['latestVersion']) +
-            '\n\nCatatan Rilis:\n${updateInfo['releaseNotes']}'
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(AppStrings.updateLaterBtn, style: TextStyle(color: AppColors.textSecondary)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                if (updateInfo['downloadUrl'] != null) {
-                  _startDownloadFlow(updateInfo['downloadUrl']);
-                } else {
-                  // Fallback to launch web page
-                  GithubService.launchUrlString(updateInfo['htmlUrl'] ?? '');
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-              child: const Text(AppStrings.updateDownloadBtn),
-            ),
-          ],
-        ),
-      );
+  Future<void> _loadVersionAndCheckUpdates() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = 'v${packageInfo.version}';
+      });
+      await GithubService.checkAndShowUpdateDialog(context);
     }
-  }
-
-  void _startDownloadFlow(String url) {
-    double progress = 0.0;
-    String? error;
-    bool completed = false;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            if (completed) {
-              Future.delayed(const Duration(milliseconds: 500), () {
-                if (mounted) Navigator.pop(context);
-              });
-            }
-
-            return AlertDialog(
-              backgroundColor: AppColors.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: AppColors.glassBorder),
-              ),
-              title: const Text('Mengunduh Pembaruan...'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  LinearProgressIndicator(
-                    value: progress,
-                    backgroundColor: AppColors.surfaceVariant,
-                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryAccent),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('${(progress * 100).toStringAsFixed(0)}% selesai'),
-                  if (error != null) ...[
-                    const SizedBox(height: 12),
-                    Text(error!, style: const TextStyle(color: AppColors.danger, fontSize: 13)),
-                  ],
-                ],
-              ),
-              actions: error != null
-                  ? [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Tutup'),
-                      )
-                    ]
-                  : [],
-            );
-          },
-        );
-      },
-    );
-
-    GithubService.downloadAndInstallApk(
-      url,
-      (p) {
-        if (mounted) {
-          // Trigger rebuild of progress dialog
-          // Find context of Dialog and state
-          // To update state inside StatefulWidget Builder:
-          progress = p;
-          (context as Element).visitAncestorElements((element) {
-            if (element is StatefulElement && element.state is StatefulBuilder) {
-              element.state.setState(() {});
-            }
-            return true;
-          });
-        }
-      },
-      (err) {
-        completed = true;
-        if (err != null) {
-          error = err;
-          if (mounted) {
-            (context as Element).visitAncestorElements((element) {
-              if (element is StatefulElement && element.state is StatefulBuilder) {
-                element.state.setState(() {});
-              }
-              return true;
-            });
-          }
-        }
-      },
-    );
   }
 
   @override
@@ -398,6 +276,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           style: const TextStyle(color: AppColors.primaryAccent),
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _appVersion,
+                        style: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ).animate().fade(delay: 500.ms),
                     ],
                   ),
                 ),

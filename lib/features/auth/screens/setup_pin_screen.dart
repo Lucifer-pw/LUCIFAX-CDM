@@ -54,7 +54,12 @@ class _SetupPinScreenState extends ConsumerState<SetupPinScreen> {
         // Save PIN
         await ref.read(authServiceProvider).savePin(enteredPin);
         if (mounted) {
-          context.go('/mode-select');
+          final userModel = ref.read(userModelProvider).value;
+          if (userModel?.role == 'admin') {
+            context.go('/mode-select');
+          } else {
+            context.go('/user-home');
+          }
         }
       } else {
         setState(() {

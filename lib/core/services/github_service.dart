@@ -1,11 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:lucifax_cdm/core/platform/native_bridge.dart';
+import 'package:lucifax_cdm/core/constants/app_colors.dart';
+import 'package:lucifax_cdm/core/constants/app_strings.dart';
 
 class GithubService {
   static const String _owner = 'Lucifer-pw';
@@ -43,6 +46,115 @@ class GithubService {
       debugPrint('Error checking github update: $e');
     }
     return {'hasUpdate': false};
+  }
+
+  static Future<void> checkAndShowUpdateDialog(BuildContext context) async {
+    final updateInfo = await checkUpdates();
+    if (updateInfo != null && updateInfo['hasUpdate'] == true && context.mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: AppColors.glassBorder),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.system_update, color: AppColors.primaryAccent),
+              const SizedBox(width: 8),
+              const Text(AppStrings.updateAvailableTitle),
+            ],
+          ),
+          content: Text(
+            AppStrings.updateAvailableDesc.replaceFirst('{version}', updateInfo['latestVersion']) +
+            '\n\nCatatan Rilis:\n${updateInfo['releaseNotes']}'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(AppStrings.updateLaterBtn, style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                if (updateInfo['downloadUrl'] != null) {
+                  _startDownloadFlow(context, updateInfo['downloadUrl']);
+                } else {
+                  launchUrlString(updateInfo['htmlUrl'] ?? '');
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              child: const Text(AppStrings.updateDownloadBtn),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  static void _startDownloadFlow(BuildContext context, String url) {
+    double progress = 0.0;
+    bool downloadStarted = false;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          if (!downloadStarted) {
+            downloadStarted = true;
+            downloadAndInstallApk(
+              url,
+              (p) {
+                if (context.mounted) {
+                  setState(() {
+                    progress = p;
+                  });
+                }
+              },
+              (err) {
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  if (err != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(err),
+                        backgroundColor: AppColors.danger,
+                      ),
+                    );
+                  }
+                }
+              },
+            );
+          }
+
+          return AlertDialog(
+            backgroundColor: AppColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: AppColors.glassBorder),
+            ),
+            title: const Text('Mengunduh Pembaruan'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                LinearProgressIndicator(
+                  value: progress,
+                  color: AppColors.primaryAccent,
+                  backgroundColor: AppColors.glassBackground,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '${(progress * 100).toStringAsFixed(0)}% terunduh...',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   static bool _isNewer(String latest, String current) {

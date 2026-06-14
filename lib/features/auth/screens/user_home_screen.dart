@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:lucifax_cdm/core/constants/app_colors.dart';
 import 'package:lucifax_cdm/core/services/auth_service.dart';
 import 'package:lucifax_cdm/core/services/device_service.dart';
 import 'package:lucifax_cdm/core/services/background_service.dart';
+import 'package:lucifax_cdm/core/services/github_service.dart';
 import 'package:lucifax_cdm/core/platform/native_bridge.dart';
 
 class UserHomeScreen extends ConsumerStatefulWidget {
@@ -16,10 +18,23 @@ class UserHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _UserHomeScreenState extends ConsumerState<UserHomeScreen> {
+  String _appVersion = '';
+
   @override
   void initState() {
     super.initState();
     _autoRegisterDeviceAndStartProtection();
+    _loadVersionAndCheckUpdates();
+  }
+
+  Future<void> _loadVersionAndCheckUpdates() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = 'v${packageInfo.version}';
+      });
+      await GithubService.checkAndShowUpdateDialog(context);
+    }
   }
 
   Future<void> _autoRegisterDeviceAndStartProtection() async {
@@ -253,6 +268,16 @@ class _UserHomeScreenState extends ConsumerState<UserHomeScreen> {
                       height: 1.4,
                     ),
                   ).animate().fadeIn(delay: 500.ms),
+
+                  const SizedBox(height: 24),
+                  Text(
+                    _appVersion,
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ).animate().fadeIn(delay: 600.ms),
                 ],
               ),
             ),

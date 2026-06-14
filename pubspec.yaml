@@ -1,7 +1,7 @@
 name: lucifax_cdm
 description: "Lucifax CDM - Anti-Theft & Remote Device Management"
 publish_to: 'none'
-version: 1.0.6+6
+version: 1.0.7+7
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
