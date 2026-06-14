@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.lucifax.lucifax_cdm">
 
     <!-- Permissions -->
@@ -110,6 +111,13 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="location|camera|dataSync" />
+
+        <!-- Background Service Library Override for Android 14+ -->
+        <service
+            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:foregroundServiceType="location|camera|dataSync"
+            android:exported="true"
+            tools:replace="android:foregroundServiceType" />
 
         <!-- FileProvider for APK Installation -->
         <provider

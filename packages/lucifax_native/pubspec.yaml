@@ -1,0 +1,19 @@
+name: lucifax_native
+description: Native bridge for Lucifax CDM
+version: 0.0.1
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.lucifax.lucifax_cdm
+        pluginClass: LucifaxNativePlugin

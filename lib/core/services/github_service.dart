@@ -19,6 +19,7 @@ class GithubService {
       final url = Uri.parse('https://api.github.com/repos/$_owner/$_repo/releases/latest');
       final response = await http.get(url, headers: {
         'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'Lucifax-CDM-App',
       });
 
       if (response.statusCode == 200) {
@@ -41,6 +42,9 @@ class GithubService {
                 : null,
           };
         }
+      } else {
+        debugPrint('Github API check update failed: Status ${response.statusCode}');
+        debugPrint('Response: ${response.body}');
       }
     } catch (e) {
       debugPrint('Error checking github update: $e');

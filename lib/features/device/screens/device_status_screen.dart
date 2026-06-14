@@ -1,14 +1,18 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucifax_cdm/core/constants/app_colors.dart';
 import 'package:lucifax_cdm/core/constants/app_strings.dart';
+import 'package:lucifax_cdm/core/constants/command_types.dart';
 import 'package:lucifax_cdm/core/platform/native_bridge.dart';
 import 'package:lucifax_cdm/core/services/auth_service.dart';
 import 'package:lucifax_cdm/core/services/background_service.dart';
+import 'package:lucifax_cdm/core/services/command_service.dart';
 import 'package:lucifax_cdm/core/services/device_service.dart';
 import 'package:lucifax_cdm/core/services/fcm_service.dart';
+import 'package:lucifax_cdm/models/command_model.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -28,18 +32,44 @@ class _DeviceStatusScreenState extends ConsumerState<DeviceStatusScreen> {
   bool _isPhoneStateGranted = false;
   bool _isAccessibilityGranted = false;
   bool _isProtectionRunning = false;
+  StreamSubscription? _commandSubscription;
 
   @override
   void initState() {
     super.initState();
     _checkPermissions();
-    _initFCM();
+    _initFCMAndCommandListener();
   }
 
-  Future<void> _initFCM() async {
+  @override
+  void dispose() {
+    _commandSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initFCMAndCommandListener() async {
     final currentDevice = ref.read(activeDeviceProvider);
     if (currentDevice != null) {
       await FcmService().initialize(currentDevice.id);
+      // Start listening for pending commands from Firestore in real-time
+      final commandService = ref.read(commandServiceProvider);
+      _commandSubscription = commandService.streamPendingCommands(currentDevice.id).listen(
+        (List<CommandModel> pendingCommands) async {
+          for (final cmd in pendingCommands) {
+            debugPrint('Device: Executing command: ${cmd.type.name} (${cmd.id})');
+            await executeCommandLocally(
+              cmd.id,
+              cmd.type,
+              cmd.deviceId,
+              cmd.payload,
+            );
+          }
+        },
+        onError: (e) {
+          debugPrint('Device: Command listener error: $e');
+        },
+      );
+      debugPrint('Device: Command listener started for device: ${currentDevice.id}');
     }
   }
 

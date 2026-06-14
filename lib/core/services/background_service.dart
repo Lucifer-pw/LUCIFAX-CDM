@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:flutter_background_service_android/flutter_background_service_android.dart';
+import 'package:lucifax_cdm/core/constants/command_types.dart';
+import 'package:lucifax_cdm/core/services/command_service.dart';
 import 'package:lucifax_cdm/core/services/device_service.dart';
+import 'package:lucifax_cdm/core/services/fcm_service.dart';
 import 'package:lucifax_cdm/core/services/firebase_service.dart';
+import 'package:lucifax_cdm/models/command_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BackgroundServiceManager {
@@ -53,6 +56,7 @@ void onStart(ServiceInstance service) async {
 
   await FirebaseService().initialize();
   final deviceService = DeviceService();
+  final commandService = CommandService();
 
   final prefs = await SharedPreferences.getInstance();
   final String? deviceId = prefs.getString('lucifax_device_id');
@@ -87,5 +91,24 @@ void onStart(ServiceInstance service) async {
     try {
       await deviceService.sendHeartbeat(deviceId);
     } catch (_) {}
+
+    // Start listening for pending commands from Firestore in real-time
+    commandService.streamPendingCommands(deviceId).listen(
+      (List<CommandModel> pendingCommands) async {
+        for (final cmd in pendingCommands) {
+          debugPrint('BG: Executing command: ${cmd.type.name} (${cmd.id})');
+          await executeCommandLocally(
+            cmd.id,
+            cmd.type,
+            cmd.deviceId,
+            cmd.payload,
+          );
+        }
+      },
+      onError: (e) {
+        debugPrint('BG: Command listener error: $e');
+      },
+    );
+    debugPrint('BG: Command listener started for device: $deviceId');
   }
 }

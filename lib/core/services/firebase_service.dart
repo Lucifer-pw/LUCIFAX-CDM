@@ -16,14 +16,20 @@ class FirebaseService {
   Future<void> initialize() async {
     if (_initialized) return;
     try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
       
-      // Setup Firestore offline persistence settings
-      FirebaseFirestore.instance.settings = const Settings(
-        persistenceEnabled: true,
-      );
+      // Setup Firestore offline persistence settings safely
+      try {
+        FirebaseFirestore.instance.settings = const Settings(
+          persistenceEnabled: true,
+        );
+      } catch (firestoreError) {
+        debugPrint('Firestore settings already configured or failed: $firestoreError');
+      }
 
       _initialized = true;
       debugPrint('Firebase initialized successfully');

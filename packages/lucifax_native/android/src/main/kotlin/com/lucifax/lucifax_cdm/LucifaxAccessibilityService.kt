@@ -53,7 +53,6 @@ class LucifaxAccessibilityService : AccessibilityService() {
                             if (hardwareBitmap != null) {
                                 val softBitmap = hardwareBitmap.copy(Bitmap.Config.ARGB_8888, false)
                                 hardwareBitmap.recycle()
-                                screenshot.hardwareBuffer.close()
 
                                 val file = File(cacheDir, "screen_capture.jpg")
                                 FileOutputStream(file).use { fos ->
@@ -62,11 +61,16 @@ class LucifaxAccessibilityService : AccessibilityService() {
                                 softBitmap.recycle()
                                 callback(file.absolutePath)
                             } else {
-                                screenshot.hardwareBuffer.close()
                                 callback(null)
                             }
                         } catch (e: Exception) {
                             callback(null)
+                        } finally {
+                            try {
+                                screenshot.hardwareBuffer.close()
+                            } catch (ex: Exception) {
+                                // ignore
+                            }
                         }
                     }
 

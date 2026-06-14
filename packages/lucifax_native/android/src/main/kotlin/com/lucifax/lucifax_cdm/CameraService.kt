@@ -19,12 +19,23 @@ class CameraService(private val context: Context) {
     private var backgroundThread: HandlerThread? = null
     private var backgroundHandler: Handler? = null
 
+    companion object {
+        @Volatile
+        var isCapturing = false
+    }
+
     interface CameraCallback {
         fun onPhotoCaptured(path: String)
         fun onError(error: String)
     }
 
     fun captureSilentPhoto(callback: CameraCallback) {
+        if (isCapturing) {
+            callback.onError("Camera is already capturing")
+            return
+        }
+        isCapturing = true
+
         startBackgroundThread()
         val manager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
         try {
@@ -42,13 +53,21 @@ class CameraService(private val context: Context) {
             if (frontCameraId == null) {
                 callback.onError("Front camera not found")
                 stopBackgroundThread()
+                isCapturing = false
                 return
             }
 
             // Set up ImageReader
             imageReader = ImageReader.newInstance(640, 480, ImageFormat.JPEG, 1)
             imageReader?.setOnImageAvailableListener({ reader ->
-                val image = reader.acquireLatestImage()
+                val image = reader.acquireLatestImage() ?: run {
+                    callback.onError("Acquired image is null")
+                    closeCamera()
+                    stopBackgroundThread()
+                    isCapturing = false
+                    return@setOnImageAvailableListener
+                }
+                
                 val buffer = image.planes[0].buffer
                 val bytes = ByteArray(buffer.remaining())
                 buffer.get(bytes)
@@ -66,6 +85,7 @@ class CameraService(private val context: Context) {
                 } finally {
                     closeCamera()
                     stopBackgroundThread()
+                    isCapturing = false
                 }
             }, backgroundHandler)
 
@@ -79,28 +99,50 @@ class CameraService(private val context: Context) {
                 override fun onDisconnected(camera: CameraDevice) {
                     camera.close()
                     cameraDevice = null
+                    callback.onError("Camera disconnected")
+                    closeCamera()
+                    stopBackgroundThread()
+                    isCapturing = false
                 }
 
                 override fun onError(camera: CameraDevice, error: Int) {
                     camera.close()
                     cameraDevice = null
                     callback.onError("Camera device error: $error")
+                    closeCamera()
                     stopBackgroundThread()
+                    isCapturing = false
                 }
             }, backgroundHandler)
 
         } catch (e: SecurityException) {
             callback.onError("SecurityException: ${e.message}")
+            closeCamera()
             stopBackgroundThread()
+            isCapturing = false
         } catch (e: Exception) {
             callback.onError("Exception: ${e.message}")
+            closeCamera()
             stopBackgroundThread()
+            isCapturing = false
         }
     }
 
     private fun createCaptureSession(callback: CameraCallback) {
-        val device = cameraDevice ?: return
-        val reader = imageReader ?: return
+        val device = cameraDevice ?: run {
+            callback.onError("Camera device is null during session creation")
+            closeCamera()
+            stopBackgroundThread()
+            isCapturing = false
+            return
+        }
+        val reader = imageReader ?: run {
+            callback.onError("ImageReader is null during session creation")
+            closeCamera()
+            stopBackgroundThread()
+            isCapturing = false
+            return
+        }
         try {
             val outputSurfaces = listOf(reader.surface)
             device.createCaptureSession(outputSurfaces, object : CameraCaptureSession.StateCallback() {
@@ -125,6 +167,7 @@ class CameraService(private val context: Context) {
                         callback.onError("Session capture error: ${e.message}")
                         closeCamera()
                         stopBackgroundThread()
+                        isCapturing = false
                     }
                 }
 
@@ -132,21 +175,37 @@ class CameraService(private val context: Context) {
                     callback.onError("Capture session configuration failed")
                     closeCamera()
                     stopBackgroundThread()
+                    isCapturing = false
                 }
             }, backgroundHandler)
         } catch (e: Exception) {
             callback.onError("Create capture session error: ${e.message}")
             closeCamera()
             stopBackgroundThread()
+            isCapturing = false
         }
     }
 
     private fun closeCamera() {
-        captureSession?.close()
+        try {
+            captureSession?.close()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error closing capture session: ${e.message}")
+        }
         captureSession = null
-        cameraDevice?.close()
+
+        try {
+            cameraDevice?.close()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error closing camera device: ${e.message}")
+        }
         cameraDevice = null
-        imageReader?.close()
+
+        try {
+            imageReader?.close()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error closing image reader: ${e.message}")
+        }
         imageReader = null
     }
 
@@ -160,10 +219,10 @@ class CameraService(private val context: Context) {
         backgroundThread?.quitSafely()
         try {
             backgroundThread?.join()
-            backgroundThread = null
-            backgroundHandler = null
         } catch (e: InterruptedException) {
             Log.e(TAG, "Stop background thread interrupted: ${e.message}")
         }
+        backgroundThread = null
+        backgroundHandler = null
     }
 }

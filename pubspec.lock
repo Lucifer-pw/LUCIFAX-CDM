@@ -808,6 +808,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.0"
+  lucifax_native:
+    dependency: "direct main"
+    description:
+      path: "packages/lucifax_native"
+      relative: true
+    source: path
+    version: "0.0.1"
   matcher:
     dependency: transitive
     description:

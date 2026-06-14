@@ -23,8 +23,8 @@ class LucifaxForegroundService : Service() {
         val prefs = getSharedPreferences("lucifax_prefs", Context.MODE_PRIVATE)
         prefs.edit().putBoolean("protection_active", true).apply()
 
-        // Create notification and start in foreground
-        val notificationIntent = Intent(this, MainActivity::class.java)
+        val pm = packageManager
+        val notificationIntent = pm.getLaunchIntentForPackage(packageName) ?: Intent()
         val pendingIntent = PendingIntent.getActivity(
             this, 0, notificationIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
@@ -38,7 +38,19 @@ class LucifaxForegroundService : Service() {
             .setOngoing(true)
             .build()
 
-        startForeground(NOTIFICATION_ID, notification)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            } else {
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA
+            }
+            startForeground(NOTIFICATION_ID, notification, type)
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
         return START_STICKY
     }
 

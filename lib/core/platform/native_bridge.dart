@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class NativeBridge {
@@ -8,8 +8,8 @@ class NativeBridge {
     try {
       final bool? result = await _channel.invokeMethod<bool>('lockDevice');
       return result ?? false;
-    } on PlatformException catch (e) {
-      print('NativeBridge lockDevice error: ${e.message}');
+    } catch (e) {
+      debugPrint('NativeBridge lockDevice error: $e');
       return false;
     }
   }
@@ -18,8 +18,8 @@ class NativeBridge {
     try {
       final bool? result = await _channel.invokeMethod<bool>('wipeDevice');
       return result ?? false;
-    } on PlatformException catch (e) {
-      print('NativeBridge wipeDevice error: ${e.message}');
+    } catch (e) {
+      debugPrint('NativeBridge wipeDevice error: $e');
       return false;
     }
   }
@@ -28,8 +28,8 @@ class NativeBridge {
     try {
       final bool? result = await _channel.invokeMethod<bool>('isDeviceAdmin');
       return result ?? false;
-    } on PlatformException catch (e) {
-      print('NativeBridge isDeviceAdmin error: ${e.message}');
+    } catch (e) {
+      debugPrint('NativeBridge isDeviceAdmin error: $e');
       return false;
     }
   }
@@ -37,8 +37,8 @@ class NativeBridge {
   static Future<void> requestDeviceAdmin() async {
     try {
       await _channel.invokeMethod<void>('requestDeviceAdmin');
-    } on PlatformException catch (e) {
-      print('NativeBridge requestDeviceAdmin error: ${e.message}');
+    } catch (e) {
+      debugPrint('NativeBridge requestDeviceAdmin error: $e');
     }
   }
 
@@ -46,8 +46,8 @@ class NativeBridge {
     try {
       final String? path = await _channel.invokeMethod<String>('capturePhoto');
       return path;
-    } on PlatformException catch (e) {
-      print('NativeBridge capturePhoto error: ${e.message}');
+    } catch (e) {
+      debugPrint('NativeBridge capturePhoto error: $e');
       return null;
     }
   }
@@ -59,8 +59,8 @@ class NativeBridge {
         return Map<String, dynamic>.from(info);
       }
       return {};
-    } on PlatformException catch (e) {
-      print('NativeBridge getDeviceInfo error: ${e.message}');
+    } catch (e) {
+      debugPrint('NativeBridge getDeviceInfo error: $e');
       return {};
     }
   }
@@ -68,24 +68,24 @@ class NativeBridge {
   static Future<void> setMaxVolume() async {
     try {
       await _channel.invokeMethod<void>('setMaxVolume');
-    } on PlatformException catch (e) {
-      print('NativeBridge setMaxVolume error: ${e.message}');
+    } catch (e) {
+      debugPrint('NativeBridge setMaxVolume error: $e');
     }
   }
 
   static Future<void> startForegroundService() async {
     try {
       await _channel.invokeMethod<void>('startForegroundService');
-    } on PlatformException catch (e) {
-      print('NativeBridge startForegroundService error: ${e.message}');
+    } catch (e) {
+      debugPrint('NativeBridge startForegroundService error: $e');
     }
   }
 
   static Future<void> stopForegroundService() async {
     try {
       await _channel.invokeMethod<void>('stopForegroundService');
-    } on PlatformException catch (e) {
-      print('NativeBridge stopForegroundService error: ${e.message}');
+    } catch (e) {
+      debugPrint('NativeBridge stopForegroundService error: $e');
     }
   }
 
@@ -96,8 +96,8 @@ class NativeBridge {
         return Map<String, dynamic>.from(info);
       }
       return {};
-    } on PlatformException catch (e) {
-      print('NativeBridge getSimInfo error: ${e.message}');
+    } catch (e) {
+      debugPrint('NativeBridge getSimInfo error: $e');
       return {};
     }
   }
@@ -106,8 +106,8 @@ class NativeBridge {
     try {
       final bool? result = await _channel.invokeMethod<bool>('installApk', {'path': path});
       return result ?? false;
-    } on PlatformException catch (e) {
-      print('NativeBridge installApk error: ${e.message}');
+    } catch (e) {
+      debugPrint('NativeBridge installApk error: $e');
       return false;
     }
   }
@@ -118,8 +118,8 @@ class NativeBridge {
     try {
       final bool? result = await _channel.invokeMethod<bool>('isAccessibilityServiceEnabled');
       return result ?? false;
-    } on PlatformException catch (e) {
-      print('NativeBridge isAccessibilityEnabled error: ${e.message}');
+    } catch (e) {
+      debugPrint('NativeBridge isAccessibilityEnabled error: $e');
       return false;
     }
   }
@@ -127,8 +127,8 @@ class NativeBridge {
   static Future<void> openAccessibilitySettings() async {
     try {
       await _channel.invokeMethod<void>('openAccessibilitySettings');
-    } on PlatformException catch (e) {
-      print('NativeBridge openAccessibilitySettings error: ${e.message}');
+    } catch (e) {
+      debugPrint('NativeBridge openAccessibilitySettings error: $e');
     }
   }
 
@@ -136,8 +136,8 @@ class NativeBridge {
     try {
       final String? path = await _channel.invokeMethod<String>('takeAccessibilityScreenshot');
       return path;
-    } on PlatformException catch (e) {
-      print('NativeBridge takeScreenshot error: ${e.message}');
+    } catch (e) {
+      debugPrint('NativeBridge takeScreenshot error: $e');
       return null;
     }
   }
@@ -150,8 +150,8 @@ class NativeBridge {
         'y': y,
       });
       return result ?? false;
-    } on PlatformException catch (e) {
-      print('NativeBridge dispatchClick error: ${e.message}');
+    } catch (e) {
+      debugPrint('NativeBridge dispatchClick error: $e');
       return false;
     }
   }
@@ -167,10 +167,9 @@ class NativeBridge {
         'duration': duration,
       });
       return result ?? false;
-    } on PlatformException catch (e) {
-      print('NativeBridge dispatchSwipe error: ${e.message}');
+    } catch (e) {
+      debugPrint('NativeBridge dispatchSwipe error: $e');
       return false;
     }
   }
 }
-

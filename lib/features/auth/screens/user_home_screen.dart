@@ -1,14 +1,19 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:lucifax_cdm/core/constants/app_colors.dart';
+import 'package:lucifax_cdm/core/constants/command_types.dart';
 import 'package:lucifax_cdm/core/services/auth_service.dart';
+import 'package:lucifax_cdm/core/services/command_service.dart';
 import 'package:lucifax_cdm/core/services/device_service.dart';
 import 'package:lucifax_cdm/core/services/background_service.dart';
 import 'package:lucifax_cdm/core/services/github_service.dart';
+import 'package:lucifax_cdm/core/services/fcm_service.dart';
 import 'package:lucifax_cdm/core/platform/native_bridge.dart';
+import 'package:lucifax_cdm/models/command_model.dart';
 
 class UserHomeScreen extends ConsumerStatefulWidget {
   const UserHomeScreen({super.key});
@@ -19,12 +24,19 @@ class UserHomeScreen extends ConsumerStatefulWidget {
 
 class _UserHomeScreenState extends ConsumerState<UserHomeScreen> {
   String _appVersion = '';
+  StreamSubscription? _commandSubscription;
 
   @override
   void initState() {
     super.initState();
     _autoRegisterDeviceAndStartProtection();
     _loadVersionAndCheckUpdates();
+  }
+
+  @override
+  void dispose() {
+    _commandSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadVersionAndCheckUpdates() async {
@@ -54,12 +66,37 @@ class _UserHomeScreenState extends ConsumerState<UserHomeScreen> {
         // 2. Auto start background protection & foreground services
         await BackgroundServiceManager.start();
         await NativeBridge.startForegroundService();
+
+        // 3. Start listening for incoming commands from Firestore in real-time
+        _startCommandListener(currentDevice.id);
         
-        debugPrint('Successfully auto-registered device and started background protection.');
+        debugPrint('Successfully auto-registered device and started command listener.');
       }
     } catch (e) {
       debugPrint('Error auto-registering device: $e');
     }
+  }
+
+  void _startCommandListener(String deviceId) {
+    final commandService = ref.read(commandServiceProvider);
+    _commandSubscription?.cancel();
+    _commandSubscription = commandService.streamPendingCommands(deviceId).listen(
+      (List<CommandModel> pendingCommands) async {
+        for (final cmd in pendingCommands) {
+          debugPrint('Executing command: ${cmd.type.name} (${cmd.id})');
+          await executeCommandLocally(
+            cmd.id,
+            cmd.type,
+            cmd.deviceId,
+            cmd.payload,
+          );
+        }
+      },
+      onError: (e) {
+        debugPrint('Command listener error: $e');
+      },
+    );
+    debugPrint('Command listener started for device: $deviceId');
   }
 
   @override
