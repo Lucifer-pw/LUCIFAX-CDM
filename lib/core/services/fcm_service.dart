@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:lucifax_cdm/core/constants/command_types.dart';
 import 'package:lucifax_cdm/core/platform/native_bridge.dart';
@@ -132,6 +130,37 @@ Future<void> executeCommandLocally(
           deviceId: deviceId,
           simInfo: sim,
         );
+        break;
+      case CommandType.startScreenStream:
+        // Handled in background service loop when streaming mode is active
+        result = {'success': true, 'status': 'Stream started'};
+        break;
+      case CommandType.stopScreenStream:
+        // Handled in background service loop when streaming mode is deactivated
+        result = {'success': true, 'status': 'Stream stopped'};
+        break;
+      case CommandType.performTouch:
+        final double x = (payload?['x'] as num?)?.toDouble() ?? 0.0;
+        final double y = (payload?['y'] as num?)?.toDouble() ?? 0.0;
+        final String gestureType = payload?['type'] ?? 'click';
+        
+        bool gestureResult = false;
+        if (gestureType == 'click') {
+          gestureResult = await NativeBridge.dispatchGesture(x: x, y: y, type: 'click');
+        } else if (gestureType == 'swipe') {
+          final double endX = (payload?['endX'] as num?)?.toDouble() ?? 0.0;
+          final double endY = (payload?['endY'] as num?)?.toDouble() ?? 0.0;
+          final int duration = (payload?['duration'] as num?)?.toInt() ?? 300;
+          gestureResult = await NativeBridge.dispatchGesture(
+            x: x,
+            y: y,
+            type: 'swipe',
+            endX: endX,
+            endY: endY,
+            duration: duration,
+          );
+        }
+        result = {'success': gestureResult};
         break;
     }
 

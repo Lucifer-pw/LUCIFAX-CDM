@@ -116,7 +116,7 @@ class UserHomeScreen extends ConsumerWidget {
                           color: AppColors.primaryAccent,
                         )
                         .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                        .shimmer(delay: 2000.ms, duration: 1500.ms, color: AppColors.secondaryAccent.withOpacity(0.5))
+                        .shimmer(delay: 2000.ms, duration: 1500.ms, color: AppColors.primary.withOpacity(0.5))
                         .scale(begin: const Offset(0.97, 0.97), end: const Offset(1.03, 1.03), duration: 2500.ms, curve: Curves.easeInOut),
                       ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
                       
