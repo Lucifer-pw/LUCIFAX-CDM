@@ -86,10 +86,10 @@ class DeviceService {
       SetOptions(merge: true),
     );
 
-    // Add device to user's list of devices
-    await _firestore.collection('users').doc(userId).update({
+    // Add device to user's list of devices (use set+merge to create doc if not exists)
+    await _firestore.collection('users').doc(userId).set({
       'devices': FieldValue.arrayUnion([deviceId]),
-    });
+    }, SetOptions(merge: true));
 
     return device;
   }
