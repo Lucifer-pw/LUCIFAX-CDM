@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucifax_cdm/core/services/firebase_service.dart';
 import 'package:lucifax_cdm/models/user_model.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService();
@@ -95,12 +95,8 @@ class AuthService {
     final user = currentUser;
     if (user == null) return;
     try {
-      // For simplicity, we just encrypt/hash locally and store in Firestore/SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('security_pin_${user.uid}', pin);
-      
       await _firestore.collection('users').doc(user.uid).update({
-        'pin': pin, // In production, hash this PIN!
+        'pin': pin,
       });
     } catch (e) {
       debugPrint('AuthService savePin error: $e');
@@ -110,22 +106,18 @@ class AuthService {
   Future<bool> verifyPin(String pin) async {
     final user = currentUser;
     if (user == null) return false;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final localPin = prefs.getString('security_pin_${user.uid}');
-      if (localPin == pin) return true;
+    return verifyPinForUser(user.uid, pin);
+  }
 
-      final doc = await _firestore.collection('users').doc(user.uid).get();
+  Future<bool> verifyPinForUser(String targetUserId, String pin) async {
+    try {
+      final doc = await _firestore.collection('users').doc(targetUserId).get();
       if (doc.exists) {
         final serverPin = doc.data()?['pin'];
-        if (serverPin == pin) {
-          // Sync to local
-          await prefs.setString('security_pin_${user.uid}', pin);
-          return true;
-        }
+        return serverPin == pin;
       }
     } catch (e) {
-      debugPrint('AuthService verifyPin error: $e');
+      debugPrint('AuthService verifyPinForUser error: $e');
     }
     return false;
   }
@@ -133,11 +125,12 @@ class AuthService {
   Future<bool> hasPinSetup() async {
     final user = currentUser;
     if (user == null) return false;
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.containsKey('security_pin_${user.uid}')) return true;
-    
     final doc = await _firestore.collection('users').doc(user.uid).get();
-    return doc.exists && doc.data()?['pin'] != null;
+    if (!doc.exists) return false;
+    final data = doc.data();
+    if (data == null) return false;
+    final pin = data['pin'];
+    return pin != null && pin.toString().trim().isNotEmpty;
   }
 
   Future<void> logout() async {

@@ -200,7 +200,7 @@ class _CommanderDashboardScreenState extends ConsumerState<CommanderDashboardScr
                 ElevatedButton(
                   onPressed: () async {
                     final pin = pinController.text;
-                    final isCorrect = await ref.read(authServiceProvider).verifyPin(pin);
+                    final isCorrect = await ref.read(authServiceProvider).verifyPinForUser(device.userId, pin);
                     if (isCorrect) {
                       Navigator.pop(context);
                       setState(() {
