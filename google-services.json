@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "673006629953",
+    "project_id": "lucifax-cdm",
+    "storage_bucket": "lucifax-cdm.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:673006629953:android:82f29841989d73ccc142c0",
+        "android_client_info": {
+          "package_name": "com.Lucifax_MCD"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdmtxhF6QQGjV7mC_CWJfdSNIEaPQMsFo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
