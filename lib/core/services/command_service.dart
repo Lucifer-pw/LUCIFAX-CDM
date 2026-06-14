@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucifax_cdm/core/constants/command_types.dart';
 import 'package:lucifax_cdm/core/services/firebase_service.dart';

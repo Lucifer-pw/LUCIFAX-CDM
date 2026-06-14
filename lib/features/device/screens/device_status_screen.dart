@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:lucifax_cdm/core/constants/app_colors.dart';
 import 'package:lucifax_cdm/core/constants/app_strings.dart';
 import 'package:lucifax_cdm/core/platform/native_bridge.dart';
-import 'package:lucifax_cdm/core/services/auth_service.dart';
 import 'package:lucifax_cdm/core/services/background_service.dart';
 import 'package:lucifax_cdm/core/services/device_service.dart';
 import 'package:lucifax_cdm/core/services/fcm_service.dart';
