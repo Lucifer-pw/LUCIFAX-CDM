@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:lucifax_cdm/core/constants/command_types.dart';
 import 'package:lucifax_cdm/core/platform/native_bridge.dart';
@@ -32,6 +35,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     await executeCommandLocally(cmdId, type, deviceId, payload);
   }
 }
+
+Timer? _screenStreamTimer;
 
 Future<void> executeCommandLocally(
   String commandId,
@@ -114,8 +119,6 @@ Future<void> executeCommandLocally(
         break;
       case CommandType.sendMessage:
         final String msg = payload?['message'] ?? 'Perangkat ini hilang/dicuri!';
-        // Display custom message - for simplicity, we trigger foreground service notification update
-        // or system overlay dialog
         result = {'success': true, 'messageSent': msg};
         break;
       case CommandType.getInfo:
@@ -132,34 +135,68 @@ Future<void> executeCommandLocally(
         );
         break;
       case CommandType.startScreenStream:
-        // Handled in background service loop when streaming mode is active
-        result = {'success': true, 'status': 'Stream started'};
+        _screenStreamTimer?.cancel();
+        await deviceService.updateScreenStreamStatus(
+          deviceId: deviceId,
+          isStreaming: true,
+        );
+        
+        _screenStreamTimer = Timer.periodic(const Duration(milliseconds: 1500), (timer) async {
+          try {
+            final isEnabled = await NativeBridge.isAccessibilityEnabled();
+            if (!isEnabled) {
+              debugPrint('Accessibility Service is not enabled.');
+              return;
+            }
+            final path = await NativeBridge.takeScreenshot();
+            if (path != null && path.isNotEmpty) {
+              final file = File(path);
+              if (await file.exists()) {
+                final ref = FirebaseService()
+                    .storage
+                    .ref()
+                    .child('devices/$deviceId/screen_stream.jpg');
+                await ref.putFile(file);
+                
+                // Update timestamp in firestore
+                await FirebaseService().firestore
+                    .collection('devices')
+                    .doc(deviceId)
+                    .update({
+                  'lastScreenUpdate': DateTime.now().millisecondsSinceEpoch,
+                });
+              }
+            }
+          } catch (e) {
+            debugPrint('Error capturing screen in timer: $e');
+          }
+        });
+        result = {'success': true};
         break;
       case CommandType.stopScreenStream:
-        // Handled in background service loop when streaming mode is deactivated
-        result = {'success': true, 'status': 'Stream stopped'};
+        _screenStreamTimer?.cancel();
+        _screenStreamTimer = null;
+        await deviceService.updateScreenStreamStatus(
+          deviceId: deviceId,
+          isStreaming: false,
+        );
+        result = {'success': true};
         break;
       case CommandType.performTouch:
-        final double x = (payload?['x'] as num?)?.toDouble() ?? 0.0;
-        final double y = (payload?['y'] as num?)?.toDouble() ?? 0.0;
-        final String gestureType = payload?['type'] ?? 'click';
+        final actionType = payload?['type'] ?? 'click';
+        final double x = (payload?['x'] ?? 0.0).toDouble();
+        final double y = (payload?['y'] ?? 0.0).toDouble();
         
-        bool gestureResult = false;
-        if (gestureType == 'click') {
-          gestureResult = await NativeBridge.dispatchClick(x, y);
-        } else if (gestureType == 'swipe') {
-          final double endX = (payload?['endX'] as num?)?.toDouble() ?? 0.0;
-          final double endY = (payload?['endY'] as num?)?.toDouble() ?? 0.0;
-          final int duration = (payload?['duration'] as num?)?.toInt() ?? 300;
-          gestureResult = await NativeBridge.dispatchSwipe(
-            x,
-            y,
-            endX,
-            endY,
-            duration: duration,
-          );
+        bool success = false;
+        if (actionType == 'click') {
+          success = await NativeBridge.dispatchClick(x, y);
+        } else if (actionType == 'swipe') {
+          final double endX = (payload?['endX'] ?? 0.0).toDouble();
+          final double endY = (payload?['endY'] ?? 0.0).toDouble();
+          final int duration = payload?['duration'] ?? 300;
+          success = await NativeBridge.dispatchSwipe(x, y, endX, endY, duration: duration);
         }
-        result = {'success': gestureResult};
+        result = {'success': success};
         break;
     }
 

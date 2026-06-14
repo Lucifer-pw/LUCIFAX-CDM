@@ -3,7 +3,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucifax_cdm/core/constants/app_colors.dart';
-import 'package:lucifax_cdm/core/constants/app_strings.dart';
 import 'package:lucifax_cdm/core/services/auth_service.dart';
 
 class UserHomeScreen extends ConsumerWidget {
@@ -14,7 +13,7 @@ class UserHomeScreen extends ConsumerWidget {
     return Scaffold(
       body: Stack(
         children: [
-          // Background Gradient Animation
+          // Background cybernetic gradient
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -29,164 +28,194 @@ class UserHomeScreen extends ConsumerWidget {
             ),
           ),
           
-          // Ambient Glow Circle behind the logo
-          Center(
+          // Radial Glow Circles (Aesthetics)
+          Positioned(
+            top: -100,
+            left: -100,
             child: Container(
-              width: 280,
-              height: 280,
+              width: 350,
+              height: 350,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.primary.withOpacity(0.12),
+                    blurRadius: 120,
+                    spreadRadius: 40,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -50,
+            right: -50,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primaryAccent.withOpacity(0.08),
                     blurRadius: 100,
                     spreadRadius: 30,
                   ),
                 ],
               ),
             ),
-          ).animate(onPlay: (controller) => controller.repeat(reverse: true))
-           .scale(begin: const Offset(0.9, 0.9), end: const Offset(1.1, 1.1), duration: 4000.ms, curve: Curves.easeInOut),
-
-          // Custom glassmorphic scanlines or cyber decoration
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.03,
-              child: Image.network(
-                'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1964&auto=format&fit=crop',
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const SizedBox(),
-              ),
-            ),
           ),
 
-          // Main Content Area
-          SafeArea(
-            child: Stack(
-              children: [
-                // Top-right logout button (glassmorphic, minimal)
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.glassBackground,
-                        border: Border.all(color: AppColors.glassBorder),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.logout_rounded, color: AppColors.textSecondary, size: 22),
-                        tooltip: 'Keluar',
-                        onPressed: () async {
-                          await ref.read(authServiceProvider).logout();
-                          if (context.mounted) {
-                            context.go('/login');
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                ).animate().fadeIn(delay: 800.ms),
-
-                // Center Logo & Branding
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Animated Holographic Shield
-                      Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.glassBackground,
-                          border: Border.all(color: AppColors.primaryAccent.withOpacity(0.3), width: 1.5),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryAccent.withOpacity(0.1),
-                              blurRadius: 20,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.shield_outlined,
-                          size: 96,
-                          color: AppColors.primaryAccent,
-                        )
-                        .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                        .shimmer(delay: 2000.ms, duration: 1500.ms, color: AppColors.primary.withOpacity(0.5))
-                        .scale(begin: const Offset(0.97, 0.97), end: const Offset(1.03, 1.03), duration: 2500.ms, curve: Curves.easeInOut),
-                      ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
-                      
-                      const SizedBox(height: 32),
-                      
-                      // App Name
-                      Text(
-                        AppStrings.appName,
-                        style: const TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 6,
-                          color: Colors.white,
-                          shadows: [
-                            Shadow(
-                              color: AppColors.primaryAccent,
-                              blurRadius: 15,
-                            ),
-                          ],
-                        ),
-                      ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
-                      
-                      const SizedBox(height: 12),
-                      
-                      // Status Dot and Text
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.success,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.success,
-                                  blurRadius: 8,
-                                  spreadRadius: 2,
-                                ),
-                              ],
-                            ),
-                          ).animate(onPlay: (controller) => controller.repeat(reverse: true))
-                           .scale(begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2), duration: 1000.ms),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'SISTEM PROTEKSI AKTIF',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2,
-                              color: AppColors.success,
-                            ),
-                          ),
-                        ],
-                      ).animate().fadeIn(delay: 500.ms),
-                      
-                      const SizedBox(height: 8),
-                      
-                      const Text(
-                        'Perangkat Anda dilindungi oleh Lucifax-CDM',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                        ),
-                      ).animate().fadeIn(delay: 600.ms),
-                    ],
-                  ),
+          // Logout Button - Minimalist Glassmorphic top-right
+          Positioned(
+            top: 50,
+            right: 20,
+            child: SafeArea(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.glassBackground,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.glassBorder),
                 ),
-              ],
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.logout_rounded,
+                    color: AppColors.textSecondary,
+                    size: 22,
+                  ),
+                  tooltip: 'Keluar Akun',
+                  onPressed: () async {
+                    await ref.read(authServiceProvider).logout();
+                    if (context.mounted) {
+                      context.go('/login');
+                    }
+                  },
+                ),
+              ),
+            ).animate().fadeIn(delay: 600.ms),
+          ),
+
+          // Main Center Content
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Animated Shield Logo
+                  Container(
+                    width: 160,
+                    height: 160,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primary.withOpacity(0.05),
+                      border: Border.all(
+                        color: AppColors.primaryAccent.withOpacity(0.2),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryAccent.withOpacity(0.1),
+                          blurRadius: 30,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.shield_outlined,
+                        size: 90,
+                        color: AppColors.primaryAccent,
+                      )
+                          .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                          .scaleXY(
+                            begin: 0.95,
+                            end: 1.05,
+                            duration: 2000.ms,
+                            curve: Curves.easeInOut,
+                          ),
+                    ),
+                  )
+                      .animate()
+                      .scale(duration: 600.ms, curve: Curves.easeOutBack)
+                      .shimmer(delay: 800.ms, duration: 1500.ms),
+
+                  const SizedBox(height: 36),
+
+                  // Brand Title
+                  Text(
+                    'LUCIFAX-CDM',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 4.0,
+                      shadows: [
+                        Shadow(
+                          color: AppColors.primaryAccent.withOpacity(0.5),
+                          blurRadius: 15,
+                          offset: const Offset(0, 0),
+                        ),
+                      ],
+                    ),
+                  ).animate().fadeIn(delay: 200.ms),
+
+                  const SizedBox(height: 12),
+
+                  // Subtitle & Status Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.glassBackground,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.glassBorder),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Pulsing Green dot indicator
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.success,
+                          ),
+                        )
+                            .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                            .scaleXY(begin: 0.7, end: 1.3, duration: 800.ms)
+                            .boxShadow(
+                              begin: const BoxShadow(color: Colors.transparent),
+                              end: const BoxShadow(color: AppColors.success, blurRadius: 6),
+                            ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'SISTEM PROTEKSI AKTIF',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ).animate().fadeIn(delay: 400.ms),
+
+                  const SizedBox(height: 16),
+                  
+                  // Secondary informational tag
+                  const Text(
+                    'Perangkat Anda diproteksi oleh sistem keamanan anti-maling Lucifax.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ).animate().fadeIn(delay: 500.ms),
+                ],
+              ),
             ),
           ),
         ],

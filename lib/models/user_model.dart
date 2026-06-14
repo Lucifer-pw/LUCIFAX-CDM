@@ -6,7 +6,7 @@ class UserModel {
   final String? pin; // hashed pin
   final List<String> devices;
   final DateTime createdAt;
-  final String role; // 'user' or 'admin'
+  final String role;
 
   UserModel({
     required this.uid,

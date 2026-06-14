@@ -13,7 +13,6 @@ import 'package:lucifax_cdm/features/commander/screens/dashboard_screen.dart';
 import 'package:lucifax_cdm/features/commander/screens/map_tracking_screen.dart';
 import 'package:lucifax_cdm/features/commander/screens/captured_photos_screen.dart';
 
-// Helper class for GoRouter refresh list to react to auth state changes
 class GoRouterRefreshStream extends ChangeNotifier {
   late final StreamSubscription<dynamic> _subscription;
 
@@ -37,7 +36,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: '/login',
-    refreshListenable: GoRouterRefreshStream(ref.watch(authServiceProvider).authStateChanges),
+    refreshListenable: GoRouterRefreshStream(
+      ref.watch(authServiceProvider).authStateChanges,
+    ),
     redirect: (context, state) {
       final user = authState.value;
       
@@ -52,37 +53,41 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      // 2. Logged in, user data loading
+      // 2. Logged in, wait for userModel data to load
       if (userModelAsync.isLoading) {
-        // If already on loading page, stay there
         if (state.matchedLocation == '/loading') return null;
         return '/loading';
       }
 
-      // 3. Logged in, user data fetched
       final userModel = userModelAsync.value;
-      if (userModel != null) {
-        final role = userModel.role;
-
-        if (role == 'user') {
-          // Normal user is strictly forced to /user-home
-          if (state.matchedLocation != '/user-home') {
-            return '/user-home';
-          }
-          return null;
-        } else if (role == 'admin') {
-          // Admin redirected away from loading/login/register/user-home
-          if (isLoggingIn ||
-              isRegistering ||
-              state.matchedLocation == '/user-home' ||
-              state.matchedLocation == '/loading') {
-            return '/mode-select';
-          }
-          return null;
-        }
+      if (userModel == null) {
+        // Safe fallback: data not found or error. Force logout to prevent soft lock.
+        ref.read(authServiceProvider).logout();
+        return '/login';
       }
 
-      // Fallback
+      // 3. Logged in, userModel is ready
+      final role = userModel.role;
+
+      if (role == 'user') {
+        // Normal user is ONLY allowed on /user-home
+        if (state.matchedLocation != '/user-home') {
+          return '/user-home';
+        }
+        return null;
+      } else if (role == 'admin') {
+        // Admin has access to commander features, mode select, etc.
+        // If admin is on login/register/user-home/loading, redirect to mode-select
+        final isRestrictedPath = isLoggingIn ||
+            isRegistering ||
+            state.matchedLocation == '/user-home' ||
+            state.matchedLocation == '/loading';
+        if (isRestrictedPath) {
+          return '/mode-select';
+        }
+        return null;
+      }
+
       return null;
     },
     routes: [

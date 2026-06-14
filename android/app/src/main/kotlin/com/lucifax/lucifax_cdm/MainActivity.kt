@@ -202,16 +202,27 @@ class MainActivity : FlutterActivity() {
                         val y = call.argument<Double>("y")?.toFloat() ?: 0f
                         val gestureType = call.argument<String>("type") ?: "click"
                         
+                        val displayMetrics = resources.displayMetrics
+                        val screenWidth = displayMetrics.widthPixels.toFloat()
+                        val screenHeight = displayMetrics.heightPixels.toFloat()
+                        
+                        val finalX = if (x in 0f..1f) x * screenWidth else x
+                        val finalY = if (y in 0f..1f) y * screenHeight else y
+                        
                         when (gestureType) {
                             "click" -> {
-                                val success = service.performClick(x, y)
+                                val success = service.performClick(finalX, finalY)
                                 result.success(success)
                             }
                             "swipe" -> {
                                 val endX = call.argument<Double>("endX")?.toFloat() ?: 0f
                                 val endY = call.argument<Double>("endY")?.toFloat() ?: 0f
                                 val duration = call.argument<Int>("duration")?.toLong() ?: 300L
-                                val success = service.performSwipe(x, y, endX, endY, duration)
+                                
+                                val finalEndX = if (endX in 0f..1f) endX * screenWidth else endX
+                                val finalEndY = if (endY in 0f..1f) endY * screenHeight else endY
+                                
+                                val success = service.performSwipe(finalX, finalY, finalEndX, finalEndY, duration)
                                 result.success(success)
                             }
                             else -> result.error("UNKNOWN_GESTURE", "Unknown gesture type: $gestureType", null)

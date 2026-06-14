@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,7 @@ import 'package:lucifax_cdm/core/constants/command_types.dart';
 import 'package:lucifax_cdm/core/services/auth_service.dart';
 import 'package:lucifax_cdm/core/services/command_service.dart';
 import 'package:lucifax_cdm/core/services/device_service.dart';
+import 'package:lucifax_cdm/core/services/firebase_service.dart';
 import 'package:lucifax_cdm/models/device_model.dart';
 
 class CommanderDashboardScreen extends ConsumerStatefulWidget {
@@ -28,6 +30,21 @@ class _CommanderDashboardScreenState extends ConsumerState<CommanderDashboardScr
 
     try {
       final cmdService = ref.read(commandServiceProvider);
+      
+      // Update local state in firestore if locking/unlocking/streaming
+      if (type == CommandType.lock) {
+        await ref.read(deviceServiceProvider).updateLockStatus(
+          deviceId: device.id,
+          isLocked: true,
+          customMessage: 'Perangkat ini hilang/dicuri!',
+        );
+      } else if (type == CommandType.unlock) {
+        await ref.read(deviceServiceProvider).updateLockStatus(
+          deviceId: device.id,
+          isLocked: false,
+        );
+      }
+
       await cmdService.sendCommand(
         targetDeviceId: device.id,
         senderId: user.uid,
@@ -124,6 +141,88 @@ class _CommanderDashboardScreenState extends ConsumerState<CommanderDashboardScr
     );
   }
 
+  void _verifyPinForDevice(DeviceModel device) {
+    final pinController = TextEditingController();
+    String? error;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: AppColors.glassBorder),
+              ),
+              title: const Text('Masukkan PIN Keamanan', style: TextStyle(color: Colors.white)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Anda harus memverifikasi PIN sebelum dapat mengontrol perangkat ini.',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: pinController,
+                    keyboardType: TextInputType.number,
+                    obscureText: true,
+                    maxLength: 4,
+                    style: const TextStyle(fontSize: 24, letterSpacing: 16, color: Colors.white),
+                    textAlign: TextAlign.center,
+                    decoration: const InputDecoration(
+                      counterText: '',
+                      hintText: '••••',
+                      hintStyle: TextStyle(color: Colors.white24),
+                    ),
+                    onChanged: (val) {
+                      if (val.length == 4) {
+                        setDialogState(() {
+                          error = null;
+                        });
+                      }
+                    },
+                  ),
+                  if (error != null) ...[
+                    const SizedBox(height: 8),
+                    Text(error!, style: const TextStyle(color: AppColors.danger, fontSize: 13)),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Batal'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final pin = pinController.text;
+                    final isCorrect = await ref.read(authServiceProvider).verifyPin(pin);
+                    if (isCorrect) {
+                      Navigator.pop(context);
+                      setState(() {
+                        _selectedDevice = device;
+                      });
+                    } else {
+                      setDialogState(() {
+                        error = 'PIN Salah!';
+                        pinController.clear();
+                      });
+                    }
+                  },
+                  child: const Text('Verifikasi'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildDeviceList(List<DeviceModel> devices) {
     return ListView.builder(
       shrinkWrap: true,
@@ -141,7 +240,7 @@ class _CommanderDashboardScreenState extends ConsumerState<CommanderDashboardScr
             border: Border.all(color: isSelected ? AppColors.primaryAccent : AppColors.glassBorder),
           ),
           child: ListTile(
-            onTap: () => setState(() => _selectedDevice = d),
+            onTap: () => _verifyPinForDevice(d),
             leading: Icon(
               d.platform == 'web' ? Icons.computer : Icons.phone_android,
               color: d.isOnline ? AppColors.success : AppColors.textSecondary,
@@ -155,6 +254,127 @@ class _CommanderDashboardScreenState extends ConsumerState<CommanderDashboardScr
           ),
         );
       },
+    );
+  }
+
+  Widget _buildScreenMirrorView(DeviceModel device) {
+    if (!device.isScreenStreaming) {
+      return Container(
+        margin: const EdgeInsets.only(top: 24),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppColors.glassBackground,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.glassBorder),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.screen_share_outlined, size: 48, color: AppColors.textSecondary),
+            const SizedBox(height: 12),
+            const Text(
+              'Pemantauan Layar Real-Time',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Aktifkan pemantauan untuk melihat dan mengontrol layar HP ini secara langsung.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('Mulai Pantau'),
+              onPressed: () => _sendRemoteCommand(CommandType.startScreenStream),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final bucket = FirebaseService().storage.bucket;
+    final imageUrl = "https://firebasestorage.googleapis.com/v0/b/$bucket/o/devices%2F${device.id}%2Fscreen_stream.jpg?alt=media&t=${device.lastScreenUpdate}";
+
+    return Container(
+      margin: const EdgeInsets.only(top: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.glassBackground,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.primaryAccent.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.live_tv, color: AppColors.success, size: 20),
+                  SizedBox(width: 8),
+                  Text('Layar Real-Time (Sentuh untuk kontrol)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                ],
+              ),
+              IconButton(
+                icon: const Icon(Icons.stop, color: AppColors.danger),
+                tooltip: 'Hentikan Pantau',
+                onPressed: () => _sendRemoteCommand(CommandType.stopScreenStream),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final height = width * 16 / 9; // Portrait aspect ratio standard
+              
+              return GestureDetector(
+                onTapDown: (details) {
+                  final localPos = details.localPosition;
+                  final pctX = localPos.dx / width;
+                  final pctY = localPos.dy / height;
+                  
+                  _sendRemoteCommand(
+                    CommandType.performTouch,
+                    payload: {
+                      'type': 'click',
+                      'x': pctX,
+                      'y': pctY,
+                    },
+                  );
+                },
+                child: Container(
+                  width: width,
+                  height: height,
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(color: AppColors.primaryAccent),
+                            SizedBox(height: 12),
+                            Text('Menghubungkan stream...', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -234,8 +454,8 @@ class _CommanderDashboardScreenState extends ConsumerState<CommanderDashboardScr
           childAspectRatio: 1.5,
           children: [
             _buildCommandCard(
-              type: CommandType.lock,
-              onTap: () => _sendRemoteCommand(CommandType.lock),
+              type: device.isLocked ? CommandType.unlock : CommandType.lock,
+              onTap: () => _sendRemoteCommand(device.isLocked ? CommandType.unlock : CommandType.lock),
             ),
             _buildCommandCard(
               type: CommandType.locate,
@@ -267,6 +487,9 @@ class _CommanderDashboardScreenState extends ConsumerState<CommanderDashboardScr
             ),
           ],
         ),
+
+        // Screen Mirror view
+        _buildScreenMirrorView(device),
       ],
     );
   }
@@ -306,8 +529,6 @@ class _CommanderDashboardScreenState extends ConsumerState<CommanderDashboardScr
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final devicesAsync = ref.watch(connectedDevicesProvider(user.uid));
-
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStrings.dashboardTitle),
@@ -327,56 +548,60 @@ class _CommanderDashboardScreenState extends ConsumerState<CommanderDashboardScr
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                devicesAsync.when(
-                  data: (devices) {
-                    if (devices.isEmpty) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 40.0),
-                          child: Text(AppStrings.noDevicesFound),
-                        ),
-                      );
-                    }
-                    
-                    // Automatically select first device if none is selected
-                    if (_selectedDevice == null && devices.isNotEmpty) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        setState(() => _selectedDevice = devices.first);
-                      });
-                    }
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('devices')
+                .where('userId', isEqualTo: user.uid)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Text(
-                          AppStrings.activeDevices,
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildDeviceList(devices),
-                        const SizedBox(height: 24),
-                        if (_selectedDevice != null) ...[
-                          // Find latest snapshot of selected device
-                          _buildControlPanel(
-                            devices.firstWhere(
-                              (d) => d.id == _selectedDevice!.id,
-                              orElse: () => _selectedDevice!,
-                            ),
-                          ),
-                        ],
-                      ],
-                    );
-                  },
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (err, stack) => Center(child: Text('Error: $err')),
+              final docs = snapshot.data?.docs ?? [];
+              final devices = docs.map((doc) => DeviceModel.fromJson(doc.data() as Map<String, dynamic>)).toList();
+
+              if (devices.isEmpty) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40.0),
+                    child: Text(AppStrings.noDevicesFound),
+                  ),
+                );
+              }
+
+              // Automatically select first device if none is selected
+              if (_selectedDevice == null && devices.isNotEmpty) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  setState(() => _selectedDevice = devices.first);
+                });
+              }
+
+              // Resolve current live device model from snapshots
+              final activeDevice = _selectedDevice != null
+                  ? devices.firstWhere((d) => d.id == _selectedDevice!.id, orElse: () => devices.first)
+                  : devices.first;
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      AppStrings.activeDevices,
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDeviceList(devices),
+                    const SizedBox(height: 24),
+                    _buildControlPanel(activeDevice),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),

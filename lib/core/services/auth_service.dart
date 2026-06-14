@@ -58,7 +58,7 @@ class AuthService {
           displayName: displayName,
           devices: [],
           createdAt: DateTime.now(),
-          role: 'user',
+          role: 'user', // Default role is user
         );
         await _firestore.collection('users').doc(uid).set(userModel.toJson());
         return userModel;
