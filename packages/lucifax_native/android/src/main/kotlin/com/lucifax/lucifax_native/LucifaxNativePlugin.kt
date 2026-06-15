@@ -28,37 +28,49 @@ class LucifaxNativePlugin : FlutterPlugin {
             
             when (call.method) {
                 "lockDevice" -> {
-                    val dpm = ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-                    val componentName = ComponentName(ctx, LucifaxDeviceAdminReceiver::class.java)
-                    if (dpm.isAdminActive(componentName)) {
-                        try {
-                            dpm.lockNow()
-                            result.success(true)
-                        } catch (e: Exception) {
-                            result.error("LOCK_FAILED", e.message, null)
+                    val dpm = ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager
+                    if (dpm != null) {
+                        val componentName = ComponentName(ctx, LucifaxDeviceAdminReceiver::class.java)
+                        if (dpm.isAdminActive(componentName)) {
+                            try {
+                                dpm.lockNow()
+                                result.success(true)
+                            } catch (e: Exception) {
+                                result.error("LOCK_FAILED", e.message, null)
+                            }
+                        } else {
+                            result.success(false)
                         }
                     } else {
-                        result.success(false)
+                        result.error("DPM_NULL", "DevicePolicyManager is not available", null)
                     }
                 }
                 "wipeDevice" -> {
-                    val dpm = ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-                    val componentName = ComponentName(ctx, LucifaxDeviceAdminReceiver::class.java)
-                    if (dpm.isAdminActive(componentName)) {
-                        try {
-                            dpm.wipeData(0)
-                            result.success(true)
-                        } catch (e: Exception) {
-                            result.error("WIPE_FAILED", e.message, null)
+                    val dpm = ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager
+                    if (dpm != null) {
+                        val componentName = ComponentName(ctx, LucifaxDeviceAdminReceiver::class.java)
+                        if (dpm.isAdminActive(componentName)) {
+                            try {
+                                dpm.wipeData(0)
+                                result.success(true)
+                            } catch (e: Exception) {
+                                result.error("WIPE_FAILED", e.message, null)
+                            }
+                        } else {
+                            result.success(false)
                         }
                     } else {
-                        result.success(false)
+                        result.error("DPM_NULL", "DevicePolicyManager is not available", null)
                     }
                 }
                 "isDeviceAdmin" -> {
-                    val dpm = ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-                    val componentName = ComponentName(ctx, LucifaxDeviceAdminReceiver::class.java)
-                    result.success(dpm.isAdminActive(componentName))
+                    val dpm = ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager
+                    if (dpm != null) {
+                        val componentName = ComponentName(ctx, LucifaxDeviceAdminReceiver::class.java)
+                        result.success(dpm.isAdminActive(componentName))
+                    } else {
+                        result.success(false)
+                    }
                 }
                 "requestDeviceAdmin" -> {
                     val componentName = ComponentName(ctx, LucifaxDeviceAdminReceiver::class.java)
@@ -90,26 +102,30 @@ class LucifaxNativePlugin : FlutterPlugin {
                     info["androidVersion"] = Build.VERSION.RELEASE
                     info["sdkVersion"] = Build.VERSION.SDK_INT
                     
-                    val bm = ctx.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
-                    info["battery"] = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+                    val bm = ctx.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
+                    info["battery"] = bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: -1
                     
                     result.success(info)
                 }
                 "setMaxVolume" -> {
-                    val am = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                    try {
-                        val maxAlarmVol = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
-                        am.setStreamVolume(AudioManager.STREAM_ALARM, maxAlarmVol, AudioManager.FLAG_PLAY_SOUND)
+                    val am = ctx.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                    if (am != null) {
+                        try {
+                            val maxAlarmVol = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+                            am.setStreamVolume(AudioManager.STREAM_ALARM, maxAlarmVol, AudioManager.FLAG_PLAY_SOUND)
 
-                        val maxMusicVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-                        am.setStreamVolume(AudioManager.STREAM_MUSIC, maxMusicVol, AudioManager.FLAG_PLAY_SOUND)
+                            val maxMusicVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                            am.setStreamVolume(AudioManager.STREAM_MUSIC, maxMusicVol, AudioManager.FLAG_PLAY_SOUND)
 
-                        val maxRingVol = am.getStreamMaxVolume(AudioManager.STREAM_RING)
-                        am.setStreamVolume(AudioManager.STREAM_RING, maxRingVol, AudioManager.FLAG_PLAY_SOUND)
-                        
-                        result.success(null)
-                    } catch (e: Exception) {
-                        result.error("VOLUME_ERROR", e.message, null)
+                            val maxRingVol = am.getStreamMaxVolume(AudioManager.STREAM_RING)
+                            am.setStreamVolume(AudioManager.STREAM_RING, maxRingVol, AudioManager.FLAG_PLAY_SOUND)
+                            
+                            result.success(null)
+                        } catch (e: Exception) {
+                            result.error("VOLUME_ERROR", e.message, null)
+                        }
+                    } else {
+                        result.error("AUDIO_SERVICE_NULL", "Audio service is not available", null)
                     }
                 }
                 "startForegroundService" -> {
@@ -136,14 +152,18 @@ class LucifaxNativePlugin : FlutterPlugin {
                 }
                 "getSimInfo" -> {
                     val info = mutableMapOf<String, Any>()
-                    val tm = ctx.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-                    try {
-                        info["simState"] = tm.simState
-                        info["operatorName"] = tm.simOperatorName
-                        info["operator"] = tm.simOperator
-                        info["country"] = tm.simCountryIso
-                    } catch (e: Exception) {
-                        info["error"] = e.message ?: "Unknown telephony error"
+                    val tm = ctx.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+                    if (tm != null) {
+                        try {
+                            info["simState"] = tm.simState
+                            info["operatorName"] = tm.simOperatorName
+                            info["operator"] = tm.simOperator
+                            info["country"] = tm.simCountryIso
+                        } catch (e: Exception) {
+                            info["error"] = e.message ?: "Unknown telephony error"
+                        }
+                    } else {
+                        info["error"] = "Telephony service not available"
                     }
                     result.success(info)
                 }

@@ -1,18 +1,23 @@
 package com.lucifax.lucifax_native
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 
 class LucifaxForegroundService : Service() {
-    private val CHANNEL_ID = "lucifax_protection"
-    private val NOTIFICATION_ID = 888
+    private val CHANNEL_ID = "lucifax_native_protection"
+    private val NOTIFICATION_ID = 889
 
     override fun onCreate() {
         super.onCreate()
@@ -39,17 +44,47 @@ class LucifaxForegroundService : Service() {
             .build()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            } else {
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA
+            var type = 0
+            
+            // Check location permission
+            val hasLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            if (hasLocation) {
+                type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
             }
-            startForeground(NOTIFICATION_ID, notification, type)
+            
+            // Check camera permission
+            val hasCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+            if (hasCamera) {
+                type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA
+            }
+            
+            // Always include data sync on Android 14+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            }
+            
+            try {
+                if (type != 0) {
+                    startForeground(NOTIFICATION_ID, notification, type)
+                } else {
+                    startForeground(NOTIFICATION_ID, notification)
+                }
+            } catch (e: Exception) {
+                Log.e("LucifaxForegroundService", "Failed to start foreground service with type flags: ${e.message}")
+                try {
+                    // Fallback to start without type flags
+                    startForeground(NOTIFICATION_ID, notification)
+                } catch (ex: Exception) {
+                    Log.e("LucifaxForegroundService", "Critical failure starting foreground service: ${ex.message}")
+                }
+            }
         } else {
-            startForeground(NOTIFICATION_ID, notification)
+            try {
+                startForeground(NOTIFICATION_ID, notification)
+            } catch (e: Exception) {
+                Log.e("LucifaxForegroundService", "Failed to start foreground service on older SDK: ${e.message}")
+            }
         }
         return START_STICKY
     }
@@ -68,7 +103,7 @@ class LucifaxForegroundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val serviceChannel = NotificationChannel(
                 CHANNEL_ID,
-                "Lucifax Protection Service Channel",
+                "Lucifax Native Protection Service Channel",
                 NotificationManager.IMPORTANCE_LOW
             )
             val manager = getSystemService(NotificationManager::class.java)
