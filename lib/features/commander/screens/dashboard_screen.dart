@@ -551,6 +551,8 @@ class _CommanderDashboardScreenState extends ConsumerState<CommanderDashboardScr
           child: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('devices')
+                .where('userId', isEqualTo: user.uid)
+                .where('mode', isEqualTo: 'device')
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.hasError) {

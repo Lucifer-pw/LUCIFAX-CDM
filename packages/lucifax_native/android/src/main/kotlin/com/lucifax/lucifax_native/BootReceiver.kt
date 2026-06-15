@@ -15,11 +15,30 @@ class BootReceiver : BroadcastReceiver() {
                 
                 if (protectionActive) {
                     try {
-                        // Start foreground protection service
+                        // Start foreground protection service safely
                         val serviceIntent = Intent(context, LucifaxForegroundService::class.java)
-                        context.startForegroundService(serviceIntent)
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                            context.startForegroundService(serviceIntent)
+                        } else {
+                            context.startService(serviceIntent)
+                        }
                     } catch (e: Exception) {
-                        Log.e("BootReceiver", "Failed to start service on boot: ${e.message}")
+                        Log.e("BootReceiver", "Failed to start native service on boot: ${e.message}")
+                    }
+
+                    try {
+                        // Start flutter background service safely
+                        val flutterServiceIntent = Intent().setClassName(
+                            context.packageName,
+                            "id.flutter.flutter_background_service.BackgroundService"
+                        )
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                            context.startForegroundService(flutterServiceIntent)
+                        } else {
+                            context.startService(flutterServiceIntent)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("BootReceiver", "Failed to start Flutter background service on boot: ${e.message}")
                     }
                 }
             }

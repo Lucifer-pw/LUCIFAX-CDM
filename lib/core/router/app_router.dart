@@ -80,8 +80,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final role = userModel.role;
 
       if (role == 'user') {
-        // Normal user is ONLY allowed on /user-home
-        if (state.matchedLocation != '/user-home') {
+        // Normal user is allowed on /user-home and /device (protection screen)
+        final allowedUserPaths = ['/user-home', '/device'];
+        if (!allowedUserPaths.contains(state.matchedLocation)) {
           return '/user-home';
         }
         return null;

@@ -293,18 +293,81 @@ class _UserHomeScreenState extends ConsumerState<UserHomeScreen> {
                     ),
                   ).animate().fadeIn(delay: 400.ms),
 
-                  const SizedBox(height: 16),
-                  
-                  // Secondary informational tag
-                  const Text(
-                    'Perangkat Anda diproteksi oleh sistem keamanan anti-maling Lucifax.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 13,
-                      height: 1.4,
+                  const SizedBox(height: 36),
+
+                  // ===== Menu: Lindungi Perangkat Ini =====
+                  InkWell(
+                    onTap: () => context.go('/device'),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary.withOpacity(0.15),
+                            AppColors.primaryAccent.withOpacity(0.08),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.primaryAccent.withOpacity(0.3),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primaryAccent.withOpacity(0.08),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.primaryAccent.withOpacity(0.15),
+                            ),
+                            child: const Icon(
+                              Icons.shield,
+                              color: AppColors.primaryAccent,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Lindungi Perangkat Ini',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Aktifkan perizinan & jalankan proteksi',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary.withOpacity(0.8),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: AppColors.primaryAccent,
+                            size: 28,
+                          ),
+                        ],
+                      ),
                     ),
-                  ).animate().fadeIn(delay: 500.ms),
+                  ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
 
                   const SizedBox(height: 24),
                   Text(
