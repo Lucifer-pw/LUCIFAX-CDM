@@ -4,6 +4,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lucifax_cdm/core/constants/app_colors.dart';
 import 'package:lucifax_cdm/core/constants/command_types.dart';
 import 'package:lucifax_cdm/core/services/auth_service.dart';
@@ -63,9 +65,29 @@ class _UserHomeScreenState extends ConsumerState<UserHomeScreen> {
 
         ref.read(activeDeviceProvider.notifier).state = currentDevice;
 
-        // 2. Auto start background protection & foreground services
-        await BackgroundServiceManager.start();
-        await NativeBridge.startForegroundService();
+        // 2. Only auto-start background/foreground services if protection
+        //    was previously activated AND essential permissions are granted.
+        //    This prevents SecurityException crash on Android 13/14 (Redmi)
+        //    when foreground service types require permissions not yet given.
+        final prefs = await SharedPreferences.getInstance();
+        final protectionPreviouslyActive = prefs.getBool('protection_active') ?? false;
+
+        if (protectionPreviouslyActive) {
+          final locGranted = await Permission.location.isGranted;
+          final camGranted = await Permission.camera.isGranted;
+          final notifGranted = await Permission.notification.isGranted;
+
+          if (locGranted && camGranted && notifGranted) {
+            await BackgroundServiceManager.start();
+            await NativeBridge.startForegroundService();
+            debugPrint('Protection auto-started: all permissions granted.');
+          } else {
+            debugPrint('Protection NOT auto-started: missing permissions '
+                '(loc=$locGranted, cam=$camGranted, notif=$notifGranted)');
+          }
+        } else {
+          debugPrint('Protection NOT auto-started: not previously activated.');
+        }
 
         // 3. Start listening for incoming commands from Firestore in real-time
         _startCommandListener(currentDevice.id);
