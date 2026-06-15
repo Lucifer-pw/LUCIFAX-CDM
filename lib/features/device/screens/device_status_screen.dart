@@ -114,14 +114,95 @@ class _DeviceStatusScreenState extends ConsumerState<DeviceStatusScreen> {
   }
 
   Future<void> _toggleProtection() async {
+    final prefs = await SharedPreferences.getInstance();
     if (_isProtectionRunning) {
       await BackgroundServiceManager.stop();
       await NativeBridge.stopForegroundService();
+      await prefs.setBool('protection_active', false);
+      setState(() {
+        _isProtectionRunning = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sistem proteksi berhasil dinonaktifkan.'),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
     } else {
+      // Check if essential permissions are granted
+      if (!_isAdmin) {
+        _showPermissionWarning('Administrator Perangkat');
+        return;
+      }
+      if (!_isLocationGranted) {
+        _showPermissionWarning('Akses Lokasi (Foreground)');
+        return;
+      }
+      if (!_isBackgroundLocationGranted) {
+        _showPermissionWarning('Akses Lokasi Latar Belakang (Selalu Izinkan)');
+        return;
+      }
+      if (!_isCameraGranted) {
+        _showPermissionWarning('Akses Kamera');
+        return;
+      }
+      if (!_isNotificationGranted) {
+        _showPermissionWarning('Akses Notifikasi');
+        return;
+      }
+      if (!_isPhoneStateGranted) {
+        _showPermissionWarning('Akses Telepon / SIM');
+        return;
+      }
+      if (!_isAccessibilityGranted) {
+        _showPermissionWarning('Aksesibilitas (Remote Control)');
+        return;
+      }
+
       await BackgroundServiceManager.start();
       await NativeBridge.startForegroundService();
+      await prefs.setBool('protection_active', true);
+      setState(() {
+        _isProtectionRunning = true;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sistem proteksi berhasil diaktifkan dan berjalan di latar belakang.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
     }
     _checkPermissions();
+  }
+
+  void _showPermissionWarning(String permissionName) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.danger),
+            SizedBox(width: 8),
+            Text('Perizinan Diperlukan', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Text(
+          'Harap aktifkan perizinan "$permissionName" terlebih dahulu sebelum memulai sistem proteksi.',
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK', style: TextStyle(color: AppColors.primaryAccent)),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildPermissionItem({

@@ -66,7 +66,7 @@ class _UserHomeScreenState extends ConsumerState<UserHomeScreen> {
         ref.read(activeDeviceProvider.notifier).state = currentDevice;
 
         // 2. Only auto-start background/foreground services if protection
-        //    was previously activated AND essential permissions are granted.
+        //    was previously activated AND all requirements/permissions are granted.
         //    This prevents SecurityException crash on Android 13/14 (Redmi)
         //    when foreground service types require permissions not yet given.
         final prefs = await SharedPreferences.getInstance();
@@ -74,16 +74,20 @@ class _UserHomeScreenState extends ConsumerState<UserHomeScreen> {
 
         if (protectionPreviouslyActive) {
           final locGranted = await Permission.location.isGranted;
+          final bgLocGranted = await Permission.locationAlways.isGranted;
           final camGranted = await Permission.camera.isGranted;
           final notifGranted = await Permission.notification.isGranted;
+          final phoneGranted = await Permission.phone.isGranted;
+          final adminActive = await NativeBridge.isDeviceAdmin();
+          final accessEnabled = await NativeBridge.isAccessibilityEnabled();
 
-          if (locGranted && camGranted && notifGranted) {
+          if (locGranted && bgLocGranted && camGranted && notifGranted && phoneGranted && adminActive && accessEnabled) {
             await BackgroundServiceManager.start();
             await NativeBridge.startForegroundService();
-            debugPrint('Protection auto-started: all permissions granted.');
+            debugPrint('Protection auto-started: all permissions and requirements met.');
           } else {
-            debugPrint('Protection NOT auto-started: missing permissions '
-                '(loc=$locGranted, cam=$camGranted, notif=$notifGranted)');
+            debugPrint('Protection NOT auto-started: missing permissions or requirements '
+                '(loc=$locGranted, bgLoc=$bgLocGranted, cam=$camGranted, notif=$notifGranted, phone=$phoneGranted, admin=$adminActive, access=$accessEnabled)');
           }
         } else {
           debugPrint('Protection NOT auto-started: not previously activated.');
