@@ -1,4 +1,4 @@
-package com.lucifax.lucifax_cdm
+package com.lucifax.lucifax_native
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall

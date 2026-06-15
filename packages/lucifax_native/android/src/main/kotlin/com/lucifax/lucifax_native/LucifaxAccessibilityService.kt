@@ -1,4 +1,4 @@
-package com.lucifax.lucifax_cdm
+package com.lucifax.lucifax_native
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription

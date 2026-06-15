@@ -15,5 +15,5 @@ flutter:
   plugin:
     platforms:
       android:
-        package: com.lucifax.lucifax_cdm
+        package: com.lucifax.lucifax_native
         pluginClass: LucifaxNativePlugin

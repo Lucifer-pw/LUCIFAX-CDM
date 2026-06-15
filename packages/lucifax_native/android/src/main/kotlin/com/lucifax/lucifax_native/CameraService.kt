@@ -1,4 +1,4 @@
-package com.lucifax.lucifax_cdm
+package com.lucifax.lucifax_native
 
 import android.content.Context
 import android.graphics.ImageFormat

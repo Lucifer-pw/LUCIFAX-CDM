@@ -69,7 +69,7 @@
 
         <!-- Device Admin Receiver -->
         <receiver
-            android:name=".LucifaxDeviceAdminReceiver"
+            android:name="com.lucifax.lucifax_native.LucifaxDeviceAdminReceiver"
             android:label="Lucifax CDM Admin"
             android:description="@string/app_name"
             android:permission="android.permission.BIND_DEVICE_ADMIN"
@@ -86,7 +86,7 @@
 
         <!-- Boot Completed Receiver -->
         <receiver
-            android:name=".BootReceiver"
+            android:name="com.lucifax.lucifax_native.BootReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
@@ -97,7 +97,7 @@
 
         <!-- SIM State Change Receiver -->
         <receiver
-            android:name=".SIMChangeReceiver"
+            android:name="com.lucifax.lucifax_native.SIMChangeReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
@@ -107,7 +107,7 @@
 
         <!-- Foreground Service -->
         <service
-            android:name=".LucifaxForegroundService"
+            android:name="com.lucifax.lucifax_native.LucifaxForegroundService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="location|camera|dataSync" />
@@ -132,7 +132,7 @@
 
         <!-- Accessibility Service for screen capture and remote gestures -->
         <service
-            android:name=".LucifaxAccessibilityService"
+            android:name="com.lucifax.lucifax_native.LucifaxAccessibilityService"
             android:label="Lucifax CDM Remote Control"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="false">
